@@ -19,12 +19,24 @@ No build step, no network requests at runtime — every file it loads lives unde
 
 ## Features
 
-- **Tracker** — tick trophies off; progress is saved in `localStorage` (key `gta6-trophy-guide-progress-v1`) and survives reloads. Export progress to `gta6-trophies-progress.json` and import it back; reset with confirmation.
-- **Filters** — search by name, description or guide; filter by grade, kind (story / missable / collectibles / activities), and status (earned / remaining); sort by roadmap order, grade or name.
+- **Tracker** — tick trophies off; progress is saved in `localStorage` (key `gta6-trophy-guide-progress-v1`) and survives reloads. Export progress to `gta6-trophies-progress.json` and import it back; reset with confirmation. Exports carry a version number and the export time, so importing one tells you when it was made.
+- **Filters** — search by name, description, guide, grade or kind (press `/` anywhere to jump to the search box); filter by grade, kind (story / missable / collectibles / activities), and status (earned / remaining); sort by roadmap order, grade or name.
 - **Spoiler setting** — on by default: un-earned story trophies show as "Hidden story trophy" until earned; turning it off reveals them all.
-- **Platinum roadmap** — 6 stages in order (story → partners & strangers → activities → collectibles → money & crime → cleanup & 100%), each with its trophies as chips.
+- **Platinum roadmap** — 6 stages in order (story → partners & strangers → activities → collectibles → money & crime → cleanup & 100%), each with its trophies as chips and a live count of how many of that stage you have earned.
 - **Missable flags** — 1 potentially missable trophy (Positive Mental Attitude: Lucia's Chapter 1 balcony meditation, which disappears after that chapter; there is no mission replay). Everything else is unmissable.
 - **Cited guides** — every trophy has a guide in our own words plus named source links (PowerPyx, GTABase, Exophase, KeenGamer, OutputLag). Vague hidden trophies whose triggers are not yet confirmed say so honestly instead of inventing steps.
+
+## Platinum roadmap at a glance
+
+| Stage | What it covers | Trophies |
+|---|---|---|
+| 1. Story first | Chapters 1–4, Gone Fishing through the final mission, plus Lucia's Chapter 1 meditation | 13 |
+| 2. Partners & strangers | Final missions for Andy, Kenton, Billy, Randy and Tyrone; 8 stranger strands | 6 |
+| 3. Activities & skills | Shooting Range golds, drone races, 20 races, fishing, arcade, bowling, hunting, Combat Focus | 10 |
+| 4. Collectibles & counts | 250 stunts, 100 WAiNK spots, 3 card sets, 50 challenges, 100 vehicles, explore Leonida | 6 |
+| 5. Money & crime | Shop and vault robberies, armored truck, gang operations, laundering, garages, Scooter Bros | 11 |
+| 6. Cleanup & 100% | Remaining counts, A Long Road (100% Completion), then the platinum | 9 |
+| **Total** | | **55** |
 
 ## Trophy counts
 
@@ -36,7 +48,11 @@ No build step, no network requests at runtime — every file it loads lives unde
 | Bronze | 46 |
 | **Total** | **55** |
 
-About 200 hours to platinum, difficulty about 4/10, 0 online trophies.
+About 200 hours to platinum, difficulty about 4/10, 0 online trophies. 28 trophies are hidden on PlayStation until earned; 27 are visible from the start.
+
+## How the tracker works
+
+Progress lives in `localStorage` under the key `gta6-trophy-guide-progress-v1`, as a sorted JSON array of earned trophy ids (1–55). The export file `gta6-trophies-progress.json` adds a `version` field and an `exported` timestamp next to the same array; importing an older export (a bare array, or an object without a version) still works, and the import message shows the export date when one is present. Progress is per browser — export the file to move it to another machine.
 
 ## Sources
 

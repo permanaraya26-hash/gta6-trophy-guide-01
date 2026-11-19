@@ -1,6 +1,15 @@
+/* Leonida Trophy Guide — dark neon theme (Vice City sunset gradient hero,
+   deep purple cards, yellow progress). Single file, no dependencies. */
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: #0e0a14; color: #f2ecf5; line-height: 1.5; }
 a { color: #7fe3d0; }
+button, input, select { font: inherit; }
+:focus-visible { outline: 3px solid #7fe3d0; outline-offset: 2px; }
+
+/* No-JS banner, shown only when JavaScript is off. */
+.noscript { margin: 0; padding: 12px 20px; background: #a33; color: #fff; font-weight: 700; text-align: center; }
+
+/* Hero header with the progress bar and the tracker actions. */
 .hero { background: linear-gradient(120deg, #ff2e88 0%, #ff7a18 45%, #12b5a5 100%); color: #fff; padding: 28px 20px 24px; }
 .hero-inner { max-width: 1080px; margin: 0 auto; }
 .eyebrow { margin: 0 0 4px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; opacity: .9; }
@@ -11,10 +20,12 @@ h1 { margin: 0; font-size: 44px; line-height: 1.05; letter-spacing: -.01em; }
 .bar > div { height: 100%; background: #ffe14d; border-radius: 8px; transition: width .3s; }
 .platinum-line { margin: 8px 0 0; font-size: 14px; }
 .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
-.header-actions button, .import-btn { background: #fff; color: #1a1024; border: 0; border-radius: 8px; padding: 9px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+.header-actions button, .import-btn { background: #fff; color: #1a1024; border: 0; border-radius: 8px; padding: 9px 14px; font-weight: 700; cursor: pointer; }
 .import-btn input { display: none; }
 .spoiler { font-weight: 700; background: rgba(0,0,0,.3); padding: 9px 12px; border-radius: 8px; cursor: pointer; }
 .import-msg { margin: 8px 0 0; font-weight: 700; min-height: 1.2em; }
+
+/* Page body, at-a-glance stats and section headings. */
 main { max-width: 1080px; margin: 0 auto; padding: 20px; }
 .stats { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 24px; }
 .stat { background: #1d1428; border: 1px solid #3a2a4d; border-radius: 10px; padding: 12px 8px; text-align: center; }
@@ -22,9 +33,13 @@ main { max-width: 1080px; margin: 0 auto; padding: 20px; }
 .stat span { font-size: 12px; color: #c9b8d6; }
 h2 { font-size: 26px; margin: 8px 0 6px; }
 .section-note { color: #c9b8d6; margin: 0 0 14px; max-width: 760px; }
+kbd { background: #2a1d3a; border: 1px solid #4a3560; border-bottom-width: 3px; border-radius: 6px; padding: 1px 7px; font-family: inherit; font-weight: 700; }
+
+/* Roadmap stages, trophy chips and the missable callout. */
 .stage { background: #1d1428; border: 1px solid #3a2a4d; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 .stage h3 { margin: 0 0 4px; font-size: 19px; }
 .stage h3 .stage-num { color: #ff7a18; }
+.stage-count { color: #ffe14d; font-size: 14px; }
 .stage p { margin: 0 0 10px; color: #c9b8d6; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { background: #2a1d3a; border: 1px solid #4a3560; border-radius: 999px; padding: 4px 10px; font-size: 13px; }
@@ -33,9 +48,11 @@ h2 { font-size: 26px; margin: 8px 0 6px; }
 .callout { background: #3a1414; border: 1px solid #a33; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-weight: 600; }
 .missable { background: #2a1214; border: 1px solid #7a2e2e; border-radius: 12px; padding: 16px; margin: 24px 0; }
 .missable p { margin: 0 0 10px; }
+
+/* Filter controls and the trophy list. */
 .controls-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; background: #1d1428; border: 1px solid #3a2a4d; border-radius: 12px; padding: 14px; }
 .controls-row label { font-weight: 700; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
-.controls-row input, .controls-row select { font: inherit; font-weight: 400; padding: 8px 10px; border-radius: 8px; border: 1px solid #4a3560; background: #120b1c; color: #f2ecf5; }
+.controls-row input, .controls-row select { font-weight: 400; padding: 8px 10px; border-radius: 8px; border: 1px solid #4a3560; background: #120b1c; color: #f2ecf5; }
 .search { flex: 1; min-width: 220px; }
 .result-count { color: #c9b8d6; font-weight: 700; }
 .trophy-list { display: grid; gap: 12px; }
@@ -54,11 +71,13 @@ h2 { font-size: 26px; margin: 8px 0 6px; }
 .spoiler-note { color: #ffb3b5; font-style: italic; }
 .earn { display: flex; gap: 8px; align-items: center; font-weight: 700; cursor: pointer; margin: 6px 0; }
 .earn input { width: 18px; height: 18px; accent-color: #12b5a5; }
-.guide-toggle { background: #2a1d3a; color: #f2ecf5; border: 1px solid #4a3560; border-radius: 8px; padding: 7px 12px; font: inherit; font-weight: 700; cursor: pointer; margin-top: 6px; }
+.guide-toggle { background: #2a1d3a; color: #f2ecf5; border: 1px solid #4a3560; border-radius: 8px; padding: 7px 12px; font-weight: 700; cursor: pointer; margin-top: 6px; }
 .guide-body { margin-top: 10px; border-top: 1px solid #3a2a4d; padding-top: 10px; }
 .guide-body p { margin: 0 0 8px; }
 .sources { font-size: 13px; color: #c9b8d6; }
 .sources a { margin-right: 12px; }
 .empty { color: #c9b8d6; font-weight: 700; }
 footer { max-width: 1080px; margin: 0 auto; padding: 0 20px 28px; color: #9a8aa8; font-size: 13px; }
+
+/* Narrow screens: smaller title, stats wrap to four per row. */
 @media (max-width: 800px) { h1 { font-size: 32px; } .stats { grid-template-columns: repeat(4, 1fr); } }

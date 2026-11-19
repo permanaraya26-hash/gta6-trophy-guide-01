@@ -1,15 +1,16 @@
 // Boot + render for the Leonida Trophy Guide: loads trophies.json, renders the
-// roadmap, the missable section and the filterable trophy tracker.
-import { STORAGE_KEY, loadEarned, saveEarned, downloadExport, importProgressFile } from './tracker.js';
-import { applyFilters, spoilerHides } from './filters.js';
+// roadmap with per-stage progress, the missable section and the filterable
+// trophy tracker. Pressing "/" anywhere on the page focuses the search box.
+import { STORAGE_KEY, loadEarned, saveEarned, downloadExport, importProgressFile, progressSummary } from './tracker.js';
+import { applyFilters, spoilerHides, KIND_LABELS } from './filters.js';
 
 const STAGES = [
-  { n: 1, title: 'Story first', text: 'Play Chapters 1–4 in order, Gone Fishing through the final mission. Make a manual save at the start of every chapter and one before the final mission — there is no mission replay. Do Lucia\u2019s balcony meditation in Chapter 1 (see the missable warning below).' },
-  { n: 2, title: 'Partners & strangers', text: 'Finish the final missions for Andy, Kenton, Billy, Randy and Tyrone, and complete 8 stranger mission strands. These stay open after the story, so finish them in free roam if needed.' },
-  { n: 3, title: 'Activities & skills', text: 'Gold medals in all Shooting Range challenges, Top Fun drone races at every location, 20 different races, beat Cal at fishing, finish an arcade game and a bowling game, meditate at every spot, and hunt a unique animal for Bret.' },
-  { n: 4, title: 'Collectibles & counts', text: '250 stunts, WAiNK at 100 locations, 3 collectible card sets, 50 challenges, 100 vehicles discovered, and explore all of Leonida.' },
+  { n: 1, title: 'Story first', text: 'Play Chapters 1–4 in order, from Gone Fishing to the final mission. Save manually at the start of every chapter and once more before the final mission, because there is no mission replay. Do Lucia’s balcony meditation in Chapter 1 — it is the one missable trophy, see the warning below.' },
+  { n: 2, title: 'Partners & strangers', text: 'Finish the final missions for Andy, Kenton, Billy, Randy and Tyrone, and complete 8 stranger mission strands. These stay open after the story, so finish them in free roam if you need to.' },
+  { n: 3, title: 'Activities & skills', text: 'Gold medals in every Shooting Range challenge, Top Fun drone races at all locations, 20 different races, beat Cal at fishing, finish an arcade game and a bowling game, hunt a unique animal for Bret, and take down 5 enemies in one Combat Focus.' },
+  { n: 4, title: 'Collectibles & counts', text: '250 stunts, WAiNK at 100 locations, 3 collectible card sets, 50 challenges, 100 vehicles discovered, and explore every corner of Leonida.' },
   { n: 5, title: 'Money & crime', text: 'Rob 3 shops back-to-back with your partner, rob a jewelry store undetected, 5 bank vaults, an armored truck, an illegal operation per gang, launder $250,000 in Marked Bills, spend $100,000, buy all garages, and register 10 vehicles to Scooter Bros.' },
-  { n: 6, title: 'Cleanup & 100%', text: 'Finish the remaining counts, attain 100% Completion (A Long Road, gold), and the platinum — Vice Got a Price! — pops with the last trophy.' },
+  { n: 6, title: 'Cleanup & 100%', text: 'Finish the remaining counts, attain 100% Completion for A Long Road (gold), and the platinum — Vice Got a Price! — pops with the last trophy.' },
 ];
 
 const state = {
@@ -26,34 +27,39 @@ function gradeDot(grade) {
 
 function renderProgress() {
   const total = trophies.length || 55;
-  const n = state.earned.size;
-  const pct = Math.round((n / total) * 100);
-  $('progressText').textContent = `${n} of ${total} earned · ${pct}%`;
-  $('progressBar').style.width = `${pct}%`;
+  const s = progressSummary(state.earned, total);
+  $('progressText').textContent = `${s.earned} of ${s.total} earned · ${s.pct}%`;
+  $('progressBar').style.width = `${s.pct}%`;
   const counts = {};
   for (const t of trophies) if (state.earned.has(t.id)) counts[t.grade] = (counts[t.grade] || 0) + 1;
   $('gradeCounts').textContent = `Platinum ${counts.platinum || 0}/1 · Gold ${counts.gold || 0}/2 · Silver ${counts.silver || 0}/6 · Bronze ${counts.bronze || 0}/46`;
   $('platinumLine').textContent = state.earned.has(1)
     ? 'Platinum earned — Vice Got a Price! You are a Leonida Legend.'
-    : `Platinum “Vice Got a Price!” — ${54 - [...state.earned].filter((id) => id !== 1).length} more trophies to go.`;
+    : `Platinum “Vice Got a Price!” — ${54 - state.earned.size} more trophies to go.`;
 }
 
 function renderRoadmap() {
   const wrap = $('roadmapStages');
   wrap.replaceChildren();
   for (const stage of STAGES) {
+    const stageTrophies = trophies.filter((x) => x.roadmap_stage === stage.n);
+    const done = stageTrophies.filter((x) => state.earned.has(x.id)).length;
     const div = document.createElement('div');
     div.className = 'stage';
     const h = document.createElement('h3');
     h.innerHTML = `<span class="stage-num">Stage ${stage.n}.</span> `;
     h.append(document.createTextNode(stage.title));
+    const count = document.createElement('span');
+    count.className = 'stage-count';
+    count.textContent = ` ${done}/${stageTrophies.length} earned`;
+    h.append(count);
     div.append(h);
     const p = document.createElement('p');
     p.textContent = stage.text;
     div.append(p);
     const chips = document.createElement('div');
     chips.className = 'chips';
-    for (const t of trophies.filter((x) => x.roadmap_stage === stage.n)) {
+    for (const t of stageTrophies) {
       const chip = document.createElement('span');
       chip.className = 'chip' + (state.earned.has(t.id) ? ' earned' : '');
       const dot = document.createElement('span');
@@ -66,7 +72,7 @@ function renderRoadmap() {
     if (stage.n === 1) {
       const call = document.createElement('div');
       call.className = 'callout';
-      call.textContent = '⚠ Missable here: Lucia\u2019s balcony meditation in Chapter 1 (Positive Mental Attitude). Do it before Chapter 1 ends — there is no mission replay.';
+      call.textContent = '⚠ Missable here: Lucia’s balcony meditation in Chapter 1 (Positive Mental Attitude). Do it before Chapter 1 ends — there is no mission replay.';
       div.append(call);
     }
     wrap.append(div);
@@ -107,7 +113,7 @@ function trophyCard(t) {
   if (t.missable) { const tag = document.createElement('span'); tag.className = 'tag missable-tag'; tag.textContent = '⚠ Missable'; head.append(tag); }
   const kind = document.createElement('span');
   kind.className = 'tag';
-  kind.textContent = t.kind;
+  kind.textContent = KIND_LABELS[t.kind] ?? t.kind;
   head.append(kind);
   card.append(head);
 
@@ -193,6 +199,13 @@ async function boot() {
   $('statusFilter').addEventListener('change', (e) => { state.status = e.target.value; renderList(); });
   $('sortSelect').addEventListener('change', (e) => { state.sort = e.target.value; renderList(); });
   $('spoilerToggle').addEventListener('change', (e) => { state.spoilerOn = e.target.checked; renderList(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (document.activeElement?.tagName ?? '').toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    e.preventDefault();
+    $('searchBox').focus();
+  });
   $('exportBtn').addEventListener('click', () => {
     downloadExport(state.earned);
     $('importMsg').textContent = `Exported ${state.earned.size} earned trophies to ${'gta6-trophies-progress.json'}.`;
@@ -205,7 +218,8 @@ async function boot() {
     else {
       state.earned = result.earned;
       saveEarned(state.earned);
-      $('importMsg').textContent = `Imported ${result.count} earned trophies (${result.total} entries in file).`;
+      const when = result.lastUpdated ? ` (exported ${new Date(result.lastUpdated).toLocaleDateString()})` : '';
+      $('importMsg').textContent = `Imported ${result.count} earned trophies (${result.total} entries in file)${when}.`;
       renderAll();
     }
     e.target.value = '';

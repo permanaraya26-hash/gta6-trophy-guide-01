@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<noscript><p class="noscript">This guide needs JavaScript to load the trophy list and save your progress. Please enable JavaScript and reload.</p></noscript>
 <header class="hero">
   <div class="hero-inner">
     <p class="eyebrow">Grand Theft Auto VI &middot; PlayStation 5 &middot; Unofficial fan guide</p>
@@ -41,7 +42,7 @@
 
   <section class="roadmap" id="roadmap">
     <h2>Platinum roadmap — 6 stages</h2>
-    <p class="section-note">Work the stages in order. Keep a manual save at the start of every chapter and one before the final mission: GTA VI has no mission replay. Difficulty about 4/10; the platinum is long, not hard.</p>
+    <p class="section-note">Work the stages in order. Keep a manual save at the start of every chapter and one before the final mission: GTA VI has no mission replay. Difficulty about 4/10; the platinum is long, not hard. Each stage shows how many of its trophies you have earned.</p>
     <div id="roadmapStages"></div>
   </section>
 
@@ -53,10 +54,11 @@
 
   <section class="controls" id="guide">
     <h2>Trophy tracker &amp; guides</h2>
+    <p class="section-note">Tick a trophy off when you earn it — your progress is saved in this browser. Open a trophy’s guide for its steps and sources, and use the filters to find what is left. Press <kbd>/</kbd> anywhere to jump to the search box.</p>
     <div class="controls-row">
-      <label class="search">Search <input id="searchBox" type="search" placeholder="Name, description or guide&hellip;"></label>
+      <label class="search">Search <input id="searchBox" type="search" placeholder="Name, description, guide, grade or kind&hellip;"></label>
       <label>Grade <select id="gradeFilter"><option value="all">All grades</option><option value="platinum">Platinum</option><option value="gold">Gold</option><option value="silver">Silver</option><option value="bronze">Bronze</option></select></label>
-      <label>Kind <select id="kindFilter"><option value="all">All kinds</option><option value="story">Story</option><option value="missable">Missable</option><option value="collectible">Collectibles</option><option value="activity">Activities</option></select></label>
+      <label>Kind <select id="kindFilter"><option value="all">All kinds</option><option value="story">Story</option><option value="missable">Missable</option><option value="collectibles">Collectibles</option><option value="activities">Activities</option></select></label>
       <label>Status <select id="statusFilter"><option value="all">All</option><option value="earned">Earned</option><option value="remaining">Remaining</option></select></label>
       <label>Sort <select id="sortSelect"><option value="roadmap">Roadmap order</option><option value="grade">Grade</option><option value="name">Name A&ndash;Z</option></select></label>
     </div>

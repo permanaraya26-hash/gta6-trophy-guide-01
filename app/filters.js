@@ -1,6 +1,9 @@
 // Filters: search text, grade / kind / status filters, sort order, and the
-// spoiler setting that hides un-earned story trophies.
+// spoiler setting that hides un-earned story trophies. The search also matches
+// a trophy's grade and kind, so typing "gold" or "story" narrows the list.
 export const GRADE_ORDER = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
+
+export const KIND_LABELS = { story: 'Story', collectibles: 'Collectibles', activities: 'Activities' };
 
 export function spoilerHides(trophy, earned, spoilerOn) {
   return spoilerOn && trophy.kind === 'story' && !earned.has(trophy.id);
@@ -15,7 +18,7 @@ export function applyFilters(trophies, state) {
     if (state.status === 'earned' && !state.earned.has(t.id)) return false;
     if (state.status === 'remaining' && state.earned.has(t.id)) return false;
     if (q) {
-      const hay = `${t.name} ${t.description} ${t.guide}`.toLowerCase();
+      const hay = `${t.name} ${t.description} ${t.guide} ${t.grade} ${t.kind}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
