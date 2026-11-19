@@ -1,238 +1,190 @@
-// Boot + render for the Leonida Trophy Guide: loads trophies.json, renders the
-// roadmap with per-stage progress, the missable section and the filterable
-// trophy tracker. Pressing "/" anywhere on the page focuses the search box.
-import { STORAGE_KEY, loadEarned, saveEarned, downloadExport, importProgressFile, progressSummary } from './tracker.js';
-import { applyFilters, spoilerHides, KIND_LABELS } from './filters.js';
+// app.js — the Leonida Trophy Guide app.
+// Fetches the trophy list, renders the checklist, the platinum roadmap and
+// the filters, and wires up the tracker, the spoiler setting and the
+// export/import buttons. Everything runs offline from files under app/.
 
-const STAGES = [
-  { n: 1, title: 'Story first', text: 'Play Chapters 1–4 in order, from Gone Fishing to the final mission. Save manually at the start of every chapter and once more before the final mission, because there is no mission replay. Do Lucia’s balcony meditation in Chapter 1 — it is the one missable trophy, see the warning below.' },
-  { n: 2, title: 'Partners & strangers', text: 'Finish the final missions for Andy, Kenton, Billy, Randy and Tyrone, and complete 8 stranger mission strands. These stay open after the story, so finish them in free roam if you need to.' },
-  { n: 3, title: 'Activities & skills', text: 'Gold medals in every Shooting Range challenge, Top Fun drone races at all locations, 20 different races, beat Cal at fishing, finish an arcade game and a bowling game, hunt a unique animal for Bret, and take down 5 enemies in one Combat Focus.' },
-  { n: 4, title: 'Collectibles & counts', text: '250 stunts, WAiNK at 100 locations, 3 collectible card sets, 50 challenges, 100 vehicles discovered, and explore every corner of Leonida.' },
-  { n: 5, title: 'Money & crime', text: 'Rob 3 shops back-to-back with your partner, rob a jewelry store undetected, 5 bank vaults, an armored truck, an illegal operation per gang, launder $250,000 in Marked Bills, spend $100,000, buy all garages, and register 10 vehicles to Scooter Bros.' },
-  { n: 6, title: 'Cleanup & 100%', text: 'Finish the remaining counts, attain 100% Completion for A Long Road (gold), and the platinum — Vice Got a Price! — pops with the last trophy.' },
+import {
+  loadEarned,
+  saveEarned,
+  setEarned,
+  progressSummary,
+  buildExport,
+  readExport,
+  downloadExport,
+} from './tracker.js';
+import { KIND_LABELS, KIND_FILTERS, applyFilters, kindCounts } from './filters.js';
+
+// The six roadmap stages, in the order a player should work through them.
+const ROADMAP_STAGES = [
+  { stage: 1, title: 'Stage 1 · Story first', note: 'Chapters 1–4, the named missions and the finale — plus the one missable trophy, Positive Mental Attitude, while you travel.' },
+  { stage: 2, title: 'Stage 2 · Strangers & side missions', note: 'The stranger strands: Andy, Kenton, Billy, Randy, Tyrone, and three more to reach eight.' },
+  { stage: 3, title: 'Stage 3 · Activities sampler', note: 'Try every activity once, then master the shooting range, drone races and the rest.' },
+  { stage: 4, title: 'Stage 4 · Collectibles & exploration', note: 'Card sets, WAiNK spots, challenges, vehicles and the whole map of Leonida.' },
+  { stage: 5, title: 'Stage 5 · Partner heists & money', note: 'Heists and robberies with your partner, laundering, spending and properties.' },
+  { stage: 6, title: 'Stage 6 · Platinum cleanup', note: '100% completion, the odd one-offs and the platinum itself.' },
 ];
 
+const SPOILER_KEY = 'leonida-trophy-guide-spoilers-v1';
+
 const state = {
-  search: '', grade: 'all', kind: 'all', status: 'all', sort: 'roadmap',
-  spoilerOn: true, earned: loadEarned(),
+  trophies: [],
+  earned: loadEarned(),
+  kind: 'all',
+  query: '',
+  spoilersHidden: window.localStorage.getItem(SPOILER_KEY) === '1',
 };
-let trophies = [];
 
-const $ = (id) => document.getElementById(id);
+const $ = (selector) => document.querySelector(selector);
 
-function gradeDot(grade) {
-  return { platinum: '#bfeef5', gold: '#f5b301', silver: '#c7ccd4', bronze: '#b0703a' }[grade];
+// A story trophy's name and description are hidden while the spoiler
+// setting is on and the trophy is not earned yet.
+function spoilerHidden(trophy) {
+  return state.spoilersHidden && trophy.kind === 'story' && !state.earned.has(trophy.id);
+}
+
+function gradeBadge(grade) {
+  return `<span class="grade grade-${grade}">${grade}</span>`;
+}
+
+function trophyCard(trophy) {
+  const earned = state.earned.has(trophy.id);
+  const hidden = spoilerHidden(trophy);
+  const name = hidden ? 'Hidden trophy — earn it to reveal' : trophy.name;
+  const description = hidden ? 'Its name and description stay hidden until earned.' : trophy.description;
+  const missable = trophy.missable ? '<span class="flag flag-missable">MISSABLE</span>' : '';
+  const hiddenFlag = trophy.hidden ? '<span class="flag">Hidden on PSN</span>' : '';
+  const sources = trophy.sources
+    .map((source) => `<a href="${source.url}" target="_blank" rel="noopener">${source.name}</a>`)
+    .join(' · ');
+  return `<article class="trophy${earned ? ' earned' : ''}" data-id="${trophy.id}">
+    <label class="trophy-check">
+      <input type="checkbox" data-trophy="${trophy.id}"${earned ? ' checked' : ''}>
+      <span class="trophy-main">
+        <span class="trophy-head">${gradeBadge(trophy.grade)} <strong>${name}</strong> ${missable}${hiddenFlag}</span>
+        <span class="trophy-desc">${description}</span>
+        <span class="trophy-guide">${trophy.guide}</span>
+        <span class="trophy-sources">Sources: ${sources}</span>
+        <span class="trophy-meta">${KIND_LABELS[trophy.kind] ?? trophy.kind} · Stage ${trophy.roadmap_stage}</span>
+      </span>
+    </label>
+  </article>`;
 }
 
 function renderProgress() {
-  const total = trophies.length || 55;
-  const s = progressSummary(state.earned, total);
-  $('progressText').textContent = `${s.earned} of ${s.total} earned · ${s.pct}%`;
-  $('progressBar').style.width = `${s.pct}%`;
-  const counts = {};
-  for (const t of trophies) if (state.earned.has(t.id)) counts[t.grade] = (counts[t.grade] || 0) + 1;
-  $('gradeCounts').textContent = `Platinum ${counts.platinum || 0}/1 · Gold ${counts.gold || 0}/2 · Silver ${counts.silver || 0}/6 · Bronze ${counts.bronze || 0}/46`;
-  $('platinumLine').textContent = state.earned.has(1)
-    ? 'Platinum earned — Vice Got a Price! You are a Leonida Legend.'
-    : `Platinum “Vice Got a Price!” — ${54 - state.earned.size} more trophies to go.`;
+  const summary = progressSummary(state.trophies, state.earned);
+  $('#progress').textContent = `${summary.earned} / ${summary.total} earned`;
+  const bar = $('#progress-bar');
+  if (bar) bar.style.width = `${Math.round((summary.earned / summary.total) * 100)}%`;
+  return summary;
 }
 
-function renderRoadmap() {
-  const wrap = $('roadmapStages');
-  wrap.replaceChildren();
-  for (const stage of STAGES) {
-    const stageTrophies = trophies.filter((x) => x.roadmap_stage === stage.n);
-    const done = stageTrophies.filter((x) => state.earned.has(x.id)).length;
-    const div = document.createElement('div');
-    div.className = 'stage';
-    const h = document.createElement('h3');
-    h.innerHTML = `<span class="stage-num">Stage ${stage.n}.</span> `;
-    h.append(document.createTextNode(stage.title));
-    const count = document.createElement('span');
-    count.className = 'stage-count';
-    count.textContent = ` ${done}/${stageTrophies.length} earned`;
-    h.append(count);
-    div.append(h);
-    const p = document.createElement('p');
-    p.textContent = stage.text;
-    div.append(p);
-    const chips = document.createElement('div');
-    chips.className = 'chips';
-    for (const t of stageTrophies) {
-      const chip = document.createElement('span');
-      chip.className = 'chip' + (state.earned.has(t.id) ? ' earned' : '');
-      const dot = document.createElement('span');
-      dot.className = 'dot';
-      dot.style.background = gradeDot(t.grade);
-      chip.append(dot, document.createTextNode(t.name));
-      chips.append(chip);
-    }
-    div.append(chips);
-    if (stage.n === 1) {
-      const call = document.createElement('div');
-      call.className = 'callout';
-      call.textContent = '⚠ Missable here: Lucia’s balcony meditation in Chapter 1 (Positive Mental Attitude). Do it before Chapter 1 ends — there is no mission replay.';
-      div.append(call);
-    }
-    wrap.append(div);
-  }
+function renderRoadmap(summary) {
+  const wrap = $('#roadmap');
+  wrap.innerHTML = ROADMAP_STAGES.map(({ stage, title, note }) => {
+    const count = summary.byStage[stage] ?? { earned: 0, total: 0 };
+    const names = state.trophies
+      .filter((trophy) => trophy.roadmap_stage === stage)
+      .map((trophy) => trophy.name)
+      .join(', ');
+    return `<section class="stage">
+      <h3><span class="stage-count">${count.earned}/${count.total} earned</span> ${title}</h3>
+      <p>${note}</p>
+      <p class="stage-trophies">${names}</p>
+    </section>`;
+  }).join('');
 }
 
-function renderMissable() {
-  const list = trophies.filter((t) => t.missable);
-  $('missableText').textContent = `${list.length} trophy is potentially missable. GTA VI has no mission replay and no New Game Plus, so keep a manual save at the start of every chapter and one before the final mission. Every other trophy can be earned in free roam after the credits.`;
-  const wrap = $('missableList');
-  wrap.replaceChildren();
-  for (const t of list) {
-    const div = document.createElement('div');
-    div.className = 'card';
-    const h = document.createElement('h3');
-    h.textContent = `${t.name} — ${t.description}`;
-    div.append(h);
-    const p = document.createElement('p');
-    p.textContent = t.guide;
-    div.append(p);
-    wrap.append(div);
-  }
-}
-
-function trophyCard(t) {
-  const hidden = spoilerHides(t, state.earned, state.spoilerOn);
-  const card = document.createElement('article');
-  card.className = 'card' + (state.earned.has(t.id) ? ' earned-card' : '');
-  const head = document.createElement('div');
-  head.className = 'card-head';
-  const h = document.createElement('h3');
-  h.textContent = hidden ? 'Hidden story trophy' : t.name;
-  const badge = document.createElement('span');
-  badge.className = `badge ${t.grade}`;
-  badge.textContent = t.grade;
-  head.append(h, badge);
-  if (t.hidden) { const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = 'Hidden on PSN'; head.append(tag); }
-  if (t.missable) { const tag = document.createElement('span'); tag.className = 'tag missable-tag'; tag.textContent = '⚠ Missable'; head.append(tag); }
-  const kind = document.createElement('span');
-  kind.className = 'tag';
-  kind.textContent = KIND_LABELS[t.kind] ?? t.kind;
-  head.append(kind);
-  card.append(head);
-
-  const desc = document.createElement('p');
-  desc.className = 'desc';
-  if (hidden) {
-    desc.innerHTML = '<span class="spoiler-note">Hidden story trophy — earn it to reveal its name and description.</span>';
-  } else {
-    desc.textContent = t.description;
-  }
-  card.append(desc);
-
-  const label = document.createElement('label');
-  label.className = 'earn';
-  const box = document.createElement('input');
-  box.type = 'checkbox';
-  box.checked = state.earned.has(t.id);
-  box.setAttribute('aria-label', `Mark ${hidden ? 'this story trophy' : t.name} as earned`);
-  box.addEventListener('change', () => {
-    if (box.checked) state.earned.add(t.id); else state.earned.delete(t.id);
-    saveEarned(state.earned);
-    renderAll();
+function renderFilters() {
+  const counts = kindCounts(state.trophies);
+  const wrap = $('#filters');
+  wrap.innerHTML = KIND_FILTERS.map((kind) => {
+    const active = kind === state.kind ? ' aria-pressed="true"' : '';
+    return `<button type="button" data-kind="${kind}"${active}>${KIND_LABELS[kind]} (${counts[kind]})</button>`;
+  }).join('');
+  wrap.querySelectorAll('button').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.kind = button.dataset.kind;
+      renderFilters();
+      renderList();
+    });
   });
-  label.append(box, document.createTextNode(box.checked ? 'Earned ✓' : 'Mark as earned'));
-  card.append(label);
-
-  if (!hidden) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'guide-toggle';
-    btn.textContent = 'Show guide';
-    btn.setAttribute('aria-expanded', 'false');
-    const body = document.createElement('div');
-    body.className = 'guide-body';
-    body.hidden = true;
-    const gp = document.createElement('p');
-    gp.textContent = t.guide;
-    body.append(gp);
-    const src = document.createElement('p');
-    src.className = 'sources';
-    src.append(document.createTextNode('Sources: '));
-    t.sources.forEach((s, i) => {
-      if (i) src.append(document.createTextNode(' · '));
-      const a = document.createElement('a');
-      a.href = s.url; a.target = '_blank'; a.rel = 'noopener';
-      a.textContent = s.name;
-      src.append(a);
-    });
-    body.append(src);
-    btn.addEventListener('click', () => {
-      body.hidden = !body.hidden;
-      btn.textContent = body.hidden ? 'Show guide' : 'Hide guide';
-      btn.setAttribute('aria-expanded', String(!body.hidden));
-    });
-    card.append(btn, body);
-  }
-  return card;
 }
 
 function renderList() {
-  const list = applyFilters(trophies, state);
-  const wrap = $('trophyList');
-  wrap.replaceChildren();
-  for (const t of list) wrap.append(trophyCard(t));
-  $('resultCount').textContent = `Showing ${list.length} of ${trophies.length} trophies`;
-  $('emptyMsg').hidden = list.length > 0;
+  const list = applyFilters(state.trophies, state.kind, state.query);
+  const wrap = $('#trophy-list');
+  if (list.length === 0) {
+    wrap.innerHTML = '<p class="empty">No trophies match this filter yet. GTA VI lists no online trophies, so the Online filter is empty by design — try All, Story or Activities.</p>';
+    return;
+  }
+  wrap.innerHTML = list.map(trophyCard).join('');
+  wrap.querySelectorAll('input[type="checkbox"]').forEach((box) => {
+    box.addEventListener('change', () => {
+      setEarned(state.earned, Number(box.dataset.trophy), box.checked);
+      const summary = renderProgress();
+      renderRoadmap(summary);
+      renderList();
+    });
+  });
 }
 
-function renderAll() {
-  renderProgress();
-  renderRoadmap();
-  renderMissable();
+function showMessage(text) {
+  const el = $('#message');
+  el.textContent = text;
+  el.hidden = false;
+}
+
+function wireControls() {
+  const search = $('#search');
+  search.addEventListener('input', () => {
+    state.query = search.value;
+    renderList();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === '/' && document.activeElement !== search) {
+      event.preventDefault();
+      search.focus();
+    }
+  });
+  const spoiler = $('#spoiler');
+  spoiler.checked = state.spoilersHidden;
+  spoiler.addEventListener('change', () => {
+    state.spoilersHidden = spoiler.checked;
+    window.localStorage.setItem(SPOILER_KEY, spoiler.checked ? '1' : '0');
+    renderList();
+  });
+  $('#export').addEventListener('click', () => {
+    const data = buildExport(state.earned);
+    downloadExport(data, 'leonida-trophy-guide-progress.json');
+    showMessage(`Exported ${data.earned.length} earned trophies (${data.exported}).`);
+  });
+  $('#import-file').addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const { earned, exported } = readExport(await file.text());
+      state.earned = earned;
+      saveEarned(state.earned);
+      const summary = renderProgress();
+      renderRoadmap(summary);
+      renderList();
+      showMessage(exported ? `Imported ${earned.size} earned trophies from the export of ${exported}.` : `Imported ${earned.size} earned trophies.`);
+    } catch (error) {
+      showMessage(`Could not import that file: ${error.message}`);
+    }
+    event.target.value = '';
+  });
+}
+
+async function main() {
+  const response = await fetch('./data/trophies.json');
+  const data = await response.json();
+  state.trophies = data.trophies;
+  wireControls();
+  renderFilters();
+  const summary = renderProgress();
+  renderRoadmap(summary);
   renderList();
 }
 
-async function boot() {
-  const res = await fetch('data/trophies.json');
-  const doc = await res.json();
-  trophies = doc.trophies;
-  $('searchBox').addEventListener('input', (e) => { state.search = e.target.value; renderList(); });
-  $('gradeFilter').addEventListener('change', (e) => { state.grade = e.target.value; renderList(); });
-  $('kindFilter').addEventListener('change', (e) => { state.kind = e.target.value; renderList(); });
-  $('statusFilter').addEventListener('change', (e) => { state.status = e.target.value; renderList(); });
-  $('sortSelect').addEventListener('change', (e) => { state.sort = e.target.value; renderList(); });
-  $('spoilerToggle').addEventListener('change', (e) => { state.spoilerOn = e.target.checked; renderList(); });
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
-    const tag = (document.activeElement?.tagName ?? '').toLowerCase();
-    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
-    e.preventDefault();
-    $('searchBox').focus();
-  });
-  $('exportBtn').addEventListener('click', () => {
-    downloadExport(state.earned);
-    $('importMsg').textContent = `Exported ${state.earned.size} earned trophies to ${'gta6-trophies-progress.json'}.`;
-  });
-  $('importFile').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const result = await importProgressFile(file);
-    if (result.error) { $('importMsg').textContent = result.error; }
-    else {
-      state.earned = result.earned;
-      saveEarned(state.earned);
-      const when = result.lastUpdated ? ` (exported ${new Date(result.lastUpdated).toLocaleDateString()})` : '';
-      $('importMsg').textContent = `Imported ${result.count} earned trophies (${result.total} entries in file)${when}.`;
-      renderAll();
-    }
-    e.target.value = '';
-  });
-  $('resetBtn').addEventListener('click', () => {
-    if (window.confirm('Reset all earned trophies? This clears your saved progress.')) {
-      state.earned = new Set();
-      saveEarned(state.earned);
-      $('importMsg').textContent = 'Progress reset.';
-      renderAll();
-    }
-  });
-  renderAll();
-}
-
-boot();
+main();

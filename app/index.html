@@ -1,78 +1,52 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leonida Trophy Guide — GTA VI (PS5)</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leonida Trophy Guide — GTA VI (PS5)</title>
+  <meta name="description" content="The complete offline guide and tracker for all 55 Grand Theft Auto VI trophies on PlayStation 5, with a platinum roadmap, missable flags and cited guides.">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
 </head>
 <body>
-<noscript><p class="noscript">This guide needs JavaScript to load the trophy list and save your progress. Please enable JavaScript and reload.</p></noscript>
-<header class="hero">
-  <div class="hero-inner">
-    <p class="eyebrow">Grand Theft Auto VI &middot; PlayStation 5 &middot; Unofficial fan guide</p>
+  <noscript><p class="noscript">This guide needs JavaScript to load its trophy list and save your progress. Please enable JavaScript and reload.</p></noscript>
+  <header class="masthead">
+    <p class="kicker">Grand Theft Auto VI · PlayStation 5</p>
     <h1>Leonida Trophy Guide</h1>
-    <p class="subtitle">All 55 trophies &middot; tracker, platinum roadmap &amp; cited guides</p>
-    <div class="progress-wrap">
-      <div class="progress-line"><span id="progressText">0 of 55 earned &middot; 0%</span><span id="gradeCounts"></span></div>
-      <div class="bar"><div id="progressBar" style="width:0%"></div></div>
-      <p class="platinum-line" id="platinumLine">Platinum &ldquo;Vice Got a Price!&rdquo; — earn the other 54 trophies.</p>
-    </div>
-    <div class="header-actions">
-      <label class="spoiler"><input type="checkbox" id="spoilerToggle" checked> Hide story spoilers until earned</label>
-      <button id="exportBtn" type="button">Export progress</button>
-      <label class="import-btn">Import progress <input id="importFile" type="file" accept="application/json,.json"></label>
-      <button id="resetBtn" type="button">Reset</button>
-    </div>
-    <p class="import-msg" id="importMsg" role="status"></p>
-  </div>
-</header>
-
-<main>
-  <section class="stats" id="stats" aria-label="At a glance">
-    <div class="stat"><strong>55</strong><span>trophies</span></div>
-    <div class="stat"><strong>1</strong><span>platinum</span></div>
-    <div class="stat"><strong>2</strong><span>gold</span></div>
-    <div class="stat"><strong>6</strong><span>silver</span></div>
-    <div class="stat"><strong>46</strong><span>bronze</span></div>
-    <div class="stat"><strong>1</strong><span>potentially missable</span></div>
-    <div class="stat"><strong>~200 h</strong><span>to platinum</span></div>
-    <div class="stat"><strong>0</strong><span>online trophies</span></div>
-  </section>
-
-  <section class="roadmap" id="roadmap">
-    <h2>Platinum roadmap — 6 stages</h2>
-    <p class="section-note">Work the stages in order. Keep a manual save at the start of every chapter and one before the final mission: GTA VI has no mission replay. Difficulty about 4/10; the platinum is long, not hard. Each stage shows how many of its trophies you have earned.</p>
-    <div id="roadmapStages"></div>
-  </section>
-
-  <section class="missable" id="missable">
-    <h2>&#9888; Missable trophies</h2>
-    <p id="missableText"></p>
-    <div id="missableList"></div>
-  </section>
-
-  <section class="controls" id="guide">
-    <h2>Trophy tracker &amp; guides</h2>
-    <p class="section-note">Tick a trophy off when you earn it — your progress is saved in this browser. Open a trophy’s guide for its steps and sources, and use the filters to find what is left. Press <kbd>/</kbd> anywhere to jump to the search box.</p>
-    <div class="controls-row">
-      <label class="search">Search <input id="searchBox" type="search" placeholder="Name, description, guide, grade or kind&hellip;"></label>
-      <label>Grade <select id="gradeFilter"><option value="all">All grades</option><option value="platinum">Platinum</option><option value="gold">Gold</option><option value="silver">Silver</option><option value="bronze">Bronze</option></select></label>
-      <label>Kind <select id="kindFilter"><option value="all">All kinds</option><option value="story">Story</option><option value="missable">Missable</option><option value="collectibles">Collectibles</option><option value="activities">Activities</option></select></label>
-      <label>Status <select id="statusFilter"><option value="all">All</option><option value="earned">Earned</option><option value="remaining">Remaining</option></select></label>
-      <label>Sort <select id="sortSelect"><option value="roadmap">Roadmap order</option><option value="grade">Grade</option><option value="name">Name A&ndash;Z</option></select></label>
-    </div>
-    <p class="result-count" id="resultCount"></p>
-  </section>
-
-  <section class="trophy-list" id="trophyList" aria-live="polite"></section>
-  <p class="empty" id="emptyMsg" hidden>No trophies match these filters. Clear the search or change a filter.</p>
-</main>
-
-<footer>
-  <p>Unofficial fan guide. Not affiliated with Rockstar Games. Trophy names and descriptions as published by PlayStation. Guides in our own words; sources cited beside each trophy. Sources: PowerPyx, GTABase, Exophase, KeenGamer and OutputLag.</p>
-</footer>
-
-<script type="module" src="app.js"></script>
+    <p class="subtitle">All 55 trophies — every official name, description and grade, a guide in our own words with its sources, a six-stage road to the platinum, and a checklist that saves your progress in this browser.</p>
+  </header>
+  <main>
+    <section class="tracker" aria-label="Your progress">
+      <h2>Your tracker</h2>
+      <p class="howto">How to use it: tick a trophy when you earn it — your progress is saved in this browser. Press <kbd>/</kbd> to jump to search, filter by kind, and hide story spoilers until you earn them.</p>
+      <p class="progress-line"><strong id="progress">0 / 55 earned</strong></p>
+      <div class="progress-track" aria-hidden="true"><div id="progress-bar" class="progress-fill"></div></div>
+      <div class="tracker-actions">
+        <button type="button" id="export">Export progress</button>
+        <label class="import-label">Import progress <input type="file" id="import-file" accept=".json,application/json"></label>
+        <label class="spoiler-label"><input type="checkbox" id="spoiler"> Hide story spoilers until earned</label>
+      </div>
+      <p id="message" class="message" hidden></p>
+    </section>
+    <section aria-label="Search and filters">
+      <label class="search-label">Search trophies
+        <input type="search" id="search" placeholder="Try a mission, a grade like gold, or a kind like story — press / to jump here">
+      </label>
+      <div id="filters" class="filters"></div>
+    </section>
+    <section aria-label="Platinum roadmap">
+      <h2>Roadmap to the platinum</h2>
+      <p>Earn the trophies in this order. Stage 1 holds the game's only missable trophy — <strong>Positive Mental Attitude</strong> — so meditate at every spot while you play the story, not after it.</p>
+      <div id="roadmap"></div>
+    </section>
+    <section aria-label="Trophy checklist">
+      <h2>Trophy checklist</h2>
+      <p>Each trophy shows its official name, description and grade as PlayStation publishes them, a guide in our own words, and the guides it cites. The platinum is trophy 1; the only missable trophy is flagged MISSABLE.</p>
+      <div id="trophy-list"></div>
+    </section>
+  </main>
+  <footer>
+    <p>Guides cite PowerPyx, GTABase, KeenGamer, Exophase, TrueTrophies and PSNProfiles beside each trophy. This guide is fan-made and not affiliated with Rockstar Games; it uses no Rockstar logo or official artwork.</p>
+  </footer>
 </body>
 </html>

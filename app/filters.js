@@ -1,34 +1,60 @@
-// Filters: search text, grade / kind / status filters, sort order, and the
-// spoiler setting that hides un-earned story trophies. The search also matches
-// a trophy's grade and kind, so typing "gold" or "story" narrows the list.
-export const GRADE_ORDER = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
+// filters.js — kind filters and search for the Leonida Trophy Guide.
+// A filter is one of the kinds the guide tracks; the search matches a
+// trophy's name, description, guide, grade and kind, so a reader can find
+// a trophy by any word they remember about it.
 
-export const KIND_LABELS = { story: 'Story', collectibles: 'Collectibles', activities: 'Activities' };
+export const KIND_LABELS = {
+  all: 'All trophies',
+  story: 'Story',
+  missable: 'Missable',
+  collectibles: 'Collectibles',
+  activities: 'Activities',
+  online: 'Online',
+};
 
-export function spoilerHides(trophy, earned, spoilerOn) {
-  return spoilerOn && trophy.kind === 'story' && !earned.has(trophy.id);
+// The kinds a reader can filter by, in the order the buttons show them.
+export const KIND_FILTERS = ['all', 'story', 'missable', 'collectibles', 'activities', 'online'];
+
+// Does this trophy belong under this filter? 'missable' is a flag, not a
+// kind, and 'online' matches nothing in this game — GTA VI's list holds no
+// online trophies, so that filter honestly shows an empty list.
+export function matchesKind(trophy, kind) {
+  if (kind === 'all') return true;
+  if (kind === 'missable') return trophy.missable === true;
+  if (kind === 'online') return false;
+  return trophy.kind === kind;
 }
 
-export function applyFilters(trophies, state) {
-  const q = state.search.trim().toLowerCase();
-  let list = trophies.filter((t) => {
-    if (state.grade !== 'all' && t.grade !== state.grade) return false;
-    if (state.kind === 'missable') { if (!t.missable) return false; }
-    else if (state.kind !== 'all' && t.kind !== state.kind) return false;
-    if (state.status === 'earned' && !state.earned.has(t.id)) return false;
-    if (state.status === 'remaining' && state.earned.has(t.id)) return false;
-    if (q) {
-      const hay = `${t.name} ${t.description} ${t.guide} ${t.grade} ${t.kind}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-  if (state.sort === 'grade') {
-    list = [...list].sort((a, b) => GRADE_ORDER[a.grade] - GRADE_ORDER[b.grade] || a.name.localeCompare(b.name));
-  } else if (state.sort === 'name') {
-    list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-  } else {
-    list = [...list].sort((a, b) => a.roadmap_stage - b.roadmap_stage || a.id - b.id);
+// Does this trophy match a search query? The query is matched, case
+// folded, against the name, the official description, the guide text, the
+// grade and the kind, so 'gold', 'story' or a mission name all find it.
+// An empty query matches everything.
+export function matchesSearch(trophy, query) {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  const haystack = [
+    trophy.name,
+    trophy.description,
+    trophy.guide,
+    trophy.grade,
+    trophy.kind,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return needle.split(/\s+/).every((word) => haystack.includes(word));
+}
+
+// Apply both a kind filter and a search query to the trophy list.
+export function applyFilters(trophies, kind, query) {
+  return trophies.filter((trophy) => matchesKind(trophy, kind) && matchesSearch(trophy, query));
+}
+
+// Count how many trophies each kind filter would show, for the buttons.
+export function kindCounts(trophies) {
+  const counts = { all: trophies.length };
+  for (const kind of KIND_FILTERS.slice(1)) {
+    counts[kind] = trophies.filter((trophy) => matchesKind(trophy, kind)).length;
   }
-  return list;
+  return counts;
 }

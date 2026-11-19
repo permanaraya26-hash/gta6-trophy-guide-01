@@ -1,67 +1,81 @@
-// Tracker: earned progress saved in localStorage, with export / import / reset.
-// The storage key is fixed by the guide spec so exports stay compatible across
-// versions. Exports carry a version number and the time they were made, so an
-// imported file can say when it was exported.
-export const STORAGE_KEY = 'gta6-trophy-guide-progress-v1';
-export const EXPORT_FILENAME = 'gta6-trophies-progress.json';
+// tracker.js — earned-trophy progress for the Leonida Trophy Guide.
+// Keeps the checklist in the browser's localStorage, exports it to a file
+// and reads an export back. Nothing here talks to the network.
+
+export const STORAGE_KEY = 'leonida-trophy-guide-earned-v1';
 export const EXPORT_VERSION = 1;
 
+// Read the earned set from localStorage. A missing or broken value means
+// nothing is earned yet, so the guide still opens cleanly.
 export function loadEarned() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return new Set();
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((id) => Number.isInteger(id) && id >= 1 && id <= 55));
+    return new Set(parsed.filter((id) => Number.isInteger(id)));
   } catch {
     return new Set();
   }
 }
 
+// Save the earned set back to localStorage.
 export function saveEarned(earned) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...earned].sort((a, b) => a - b)));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...earned].sort((a, b) => a - b)));
 }
 
-// One place for the progress maths, so the header and the roadmap agree.
-export function progressSummary(earned, total) {
-  const n = earned.size;
-  const pct = total > 0 ? Math.round((n / total) * 100) : 0;
-  return { earned: n, total, remaining: total - n, pct };
+// Mark one trophy earned (true) or not earned (false) and persist it.
+export function setEarned(earned, id, value) {
+  if (value) earned.add(id);
+  else earned.delete(id);
+  saveEarned(earned);
+  return earned;
 }
 
-export function downloadExport(earned) {
-  const payload = {
+// Count earned trophies overall and per roadmap stage, for the tracker
+// header and the roadmap headings. Returns { earned, total, byStage }.
+export function progressSummary(trophies, earned) {
+  const byStage = {};
+  for (const trophy of trophies) {
+    const stage = trophy.roadmap_stage;
+    if (!byStage[stage]) byStage[stage] = { earned: 0, total: 0 };
+    byStage[stage].total += 1;
+    if (earned.has(trophy.id)) byStage[stage].earned += 1;
+  }
+  return { earned: earned.size, total: trophies.length, byStage };
+}
+
+// Build the export object: versioned, timestamped, and listing the earned
+// trophy ids. The file the reader downloads is this object as JSON.
+export function buildExport(earned) {
+  return {
     version: EXPORT_VERSION,
     exported: new Date().toISOString(),
     earned: [...earned].sort((a, b) => a - b),
   };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = EXPORT_FILENAME;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
-// Reads a user-chosen JSON file and returns {count, total, lastUpdated} of the
-// valid ids restored, or {error} when the file cannot be parsed. Bad entries
-// are ignored, never fatal. Files exported by older versions (a bare array, or
-// an object without a version) still import.
-export async function importProgressFile(file) {
-  let parsed;
-  try {
-    parsed = JSON.parse(await file.text());
-  } catch {
-    return { error: 'That file is not valid JSON.' };
-  }
-  const list = Array.isArray(parsed) ? parsed : parsed.earned;
-  if (!Array.isArray(list)) return { error: 'No trophy list found in that file.' };
-  const valid = list.filter((id) => Number.isInteger(id) && id >= 1 && id <= 55);
-  return {
-    earned: new Set(valid),
-    count: valid.length,
-    total: list.length,
-    lastUpdated: typeof parsed.exported === 'string' ? parsed.exported : null,
-  };
+// Read an export back. Returns { earned, exported } where exported is the
+// date the export file was made, or null when the file has no date.
+// Throws when the file is not a recognisable export of this guide.
+export function readExport(text) {
+  const parsed = JSON.parse(text);
+  if (!parsed || typeof parsed !== 'object') throw new Error('Not an export file.');
+  if (!Array.isArray(parsed.earned)) throw new Error('Export has no earned list.');
+  const earned = new Set(parsed.earned.filter((id) => Number.isInteger(id)));
+  const exported = typeof parsed.exported === 'string' ? parsed.exported : null;
+  return { earned, exported };
+}
+
+// Offer the export object as a file download in the browser.
+export function downloadExport(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
